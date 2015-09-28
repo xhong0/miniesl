@@ -1,7 +1,7 @@
 /**
  *
  * @file 加载器，符合AMD规范
- * config 只支持map、plugin
+ * config 只支持map、plugin、config
  * @author dxh
  */
 
