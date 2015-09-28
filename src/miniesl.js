@@ -313,10 +313,16 @@ var require;
 
         if (!mod.defined) {
             var factory = mod.factory;
-            var factoryReturn = factory.apply(
-                this,
-                getModsExports(mod.deps, factory, id)
-            );
+            var factoryReturn;
+            if (typeof mod.factory === 'object') {
+                factoryReturn = mod.factory;
+            }
+            else {
+                factoryReturn = factory.apply(
+                    this,
+                    getModsExports(mod.deps, factory, id)
+                );
+            }
             if (typeof factoryReturn !== 'undefined') {
                 mod.exports = factoryReturn;
             }

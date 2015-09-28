@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>maptest</title>
+    <script src="../src/miniesl.js"></script>
+</head>
+<body>
+    <script>
+    require.config({
+        'map': {
+            'mod2': {
+                'te': 'map'
+            }
+        },
+    });
+
+    define('mod1', ['require'], function (require) {
+        console.log('define mod1');
+        console.log(require('map').age);
+        return {
+            age: 'mod1 age is ' + 10
+        };
+    });
+
+    define('mod2', ['require'], function (require) {
+        console.log('define mod2');
+        console.log(require('te').age); // 等价于 require('map');
+        return {
+            age: 'mod2 age is ' + 100
+        };
+    });
+
+    define('map', [], function () {
+        console.log('define map');
+        return {
+            age: 'map age is ' + 1000
+        };
+    });
+
+    require(['mod1', 'mod2'], function (m1, m2) {
+        console.log(m1.age);
+        console.log(m2.age);
+    });
+
+    /*
+    输出结果：
+    define mod1
+    define map
+    map age is 1000
+    define mod2
+    map age is 1000
+    mod1 age is 10
+    mod2 age is 100
+    */
+    </script>
+</body>
+</html>

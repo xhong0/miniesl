@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>localrequiretest</title>
+    <script src="../src/miniesl.js"></script>
+</head>
+<body>
+    <script>
+    define('mod1', [], function () {
+        console.log('define mod1');
+        return {
+            age: 'mod1 age is ' + 10
+        };
+    });
+
+    define('mod2', [], function () {
+        console.log('define mod2');
+        return {
+            age: 'mod2 age is ' + 100
+        };
+    });
+
+    define('mod3', [], function () {
+        console.log('define mod3');
+        return {
+            age: 'mod3 age is ' + 1000
+        };
+    });
+
+    define('mod4', ['require', 'mod1'], function (require, m1) {
+        console.log('define mod4');
+        console.log('mod4 factory mod1: ', m1.age);
+        return {
+            age: 'mod4 age is ' + 10000,
+            display: function () {
+                console.log('mod4 require mod2 ', require('mod2').age);
+
+                require(['mod3'], function (m3){
+                    console.log(m3.age);
+                })
+            }
+        };
+    });
+
+
+    require(['mod4'], function (m4) {
+        console.log('require m4: ', m4.age);
+        console.log('require m4 ----- ');
+        m4.display();
+    });
+
+
+    define('parent/mod1', [], function () {
+        console.log('define parent/mod1');
+        return {
+            name: 'parent/mod1 named child1'
+        };
+    });
+    define('parent/mod2', [], function () {
+        console.log('define parent/mod2');
+        return {
+            name: 'parent/mod2 named child2'
+        };
+    });
+
+    define('parent/mod3', [], function () {
+        console.log('define parent/mod3');
+        return {
+            name: 'parent/mod3 named child3'
+        };
+    });
+
+    define('parent/mod4', ['require', './mod1'], function (require, m1) {
+        console.log('define parent/mod4');
+        console.log('parent/mod4 factory mod1: ', m1.name);
+        return {
+            name: 'parent/mod4 named child4',
+            display: function () {
+                console.log('parent/mod4 require mod2 ', require('./mod2').name);
+
+                require(['./mod3'], function (m3){
+                    console.log(m3.name);
+                })
+            }
+        };
+    });
+
+    require(['parent/mod4'], function (m4) {
+        console.log('require m4: ', m4.name);
+        console.log('require m4 ----- ');
+        m4.display();
+    })
+
+    /*
+    输出结果：
+    define mod1
+    define mod4
+    mod4 factory mod1:  mod1 age is 10
+    require m4:  mod4 age is 10000
+    require m4 ----- 
+    define mod2
+    mod4 require mod2  mod2 age is 100
+    define mod3
+    mod3 age is 1000
+    define parent/mod1
+    define parent/mod4
+    parent/mod4 factory mod1:  parent/mod1 named child1
+    require m4:  parent/mod4 named child4
+    require m4 ----- 
+    define parent/mod2
+    parent/mod4 require mod2  parent/mod2 named child2
+    define parent/mod3
+    parent/mod3 named child3
+    */
+
+    </script>
+</body>
+</html>

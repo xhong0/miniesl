@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>configtest</title>
+    <script src="../src/miniesl.js"></script>
+</head>
+<body>
+    <script>
+    require.config({
+        'config': {
+            'mod1': {
+                'color': 'red'
+            },
+            'mod2': {
+                'color': 'green'
+            }
+        },
+    });
+    define('mod1', ['module'], function (module) {
+        console.log('define mod1');
+        var conf = module.config();
+        console.log('config mod1: ', conf.color);
+    });
+
+    define('mod2', ['module'], function (module) {
+         console.log('define mod2');
+        var conf = module.config();
+        console.log('config mod2: ', conf.color);
+    });
+    require('mod1');
+    require('mod2');
+
+    /*
+    输出结果：
+    define mod1
+    config mod1:  red
+    define mod2
+    config mod2:  green
+    */
+    </script>
+</body>
+</html>
