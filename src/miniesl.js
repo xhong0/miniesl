@@ -196,8 +196,9 @@ var require;
      * @return {string} mapped moduleId
      */
     function mappingModuleId(moduleId, baseId) {
+        // 将config.map中的key 按照长度排序 生成元素为对象的数组
         var mapIdIndex = objToKvregArr(config.map).sort(descSorterByKOrName);
-
+        // 将config.map中每一项的value 成按长度 生产各项元素为对象的数据 
         each(mapIdIndex, function (item) {
                 item.v = objToKvregArr(item.v).sort(descSorterByKOrName);
             }
