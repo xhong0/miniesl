@@ -12,8 +12,8 @@ var require;
     var mods = {};
 
     var config = {
-        config: {},
-        map: {}
+        config: {}, // 相应的模块调用module.config(), 获取信息
+        map: {} // 对于给定的模块前缀，使用一个不同的模块ID来加载该模块
     };
 
     /**
@@ -25,8 +25,9 @@ var require;
      */
     define = function (id, deps, factory) {
         if (typeof id !== 'string') {
-            throw new Error('incorrect module build, no module name');
+            throw new Error('[BUILD ERROR]: incorrect module build, no module name');
         }
+
         if (!deps.splice) {
             factory = deps;
             deps = [];
@@ -35,7 +36,7 @@ var require;
         if (!mods[id]) {
             mods[id] = {
                 id: id,
-                deps: deps,
+                deps: !deps.length ? ['require', 'exports', 'module'] : deps,
                 factory: factory,
                 defined: 0,
                 exports: {},
@@ -68,7 +69,7 @@ var require;
             }
             else if (id instanceof Array) {
                 callback = callback || function () {};
-                callback.apply(this, getModsExports(id, callback, baseId));
+                callback.apply(this, getModsExports(id, baseId));
             }
         }
 
@@ -195,70 +196,115 @@ var require;
      * @return {string} mapped moduleId
      */
     function mappingModuleId(moduleId, baseId) {
-        var idParts;
-        var idSegment;
-        var mapValue;
-        var foundMap;
-        var foundI;
-        var foundStarMap;
-        var starI;
-        var baseParts = baseId && baseId.split('/');
-        var map = config.map;
-        var starMap = (map && map['*']) || {};
+        var mapIdIndex = objToKvregArr(config.map).sort(descSorterByKOrName);
 
-        if ((baseParts || starMap) && map) {
-            // 将转换为绝对moduleId的moduleId区分开
-            idParts = moduleId.split('/');
+        each(mapIdIndex, function (item) {
+                item.v = objToKvregArr(item.v).sort(descSorterByKOrName);
+            }
+        );
 
-            for (var i = idParts.length; i > 0; i--) {
-                // 一段一段的分割
-                idSegment = idParts.slice(0, i).join('/');
-
-                if (baseParts) {
-                    // 从最长到最短baseID查看是否有对应的map
-                    for (var j = baseParts.length; j > 0; j--) {
-                        mapValue = map[baseParts.slice(0, j).join('/')];
-                        if (mapValue) {
-                            mapValue = mapValue[idSegment];
-                            if (mapValue) {
-                                // 如果匹配到了，map到新的值.
-                                foundMap = mapValue;
-                                foundI = i;
-                                break;
-                            }
-                        }
+        indexRetrieve(
+            baseId,
+            mapIdIndex,
+            function (value) {
+                indexRetrieve(
+                    moduleId,
+                    value,
+                    function (mdValue, mdKey) {
+                        moduleId = moduleId.replace(mdKey, mdValue);
                     }
-                }
-
-                if (foundMap) {
-                    break;
-                }
-
-                // 查看是否有*类型的map，并且有对应的值,
-                if (!foundStarMap && starMap && starMap[idSegment]) {
-                    foundStarMap = starMap[idSegment];
-                    starI = i;
-                }
+                );
             }
-
-            if (!foundMap && foundStarMap) {
-                foundMap = foundStarMap;
-                foundI = starI;
-            }
-
-            if (foundMap) {
-                idParts.splice(0, foundI, foundMap);
-                moduleId = idParts.join('/');
-            }
-        }
+        );
 
         return moduleId;
+    }
+
+    /**
+     * 将对象数据转换成数组，数组每项是带有k、v、reg的Object
+     *
+     * @inner
+     * @param {Object} obj 对象数据
+     * @return {Array.<Object>} 对象转换数组
+     */
+    function objToKvregArr(obj) {
+        var arr = [];
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                var item = {
+                    k: key,
+                    v: obj[key],
+                    reg: key === '*'
+                                ? /^/
+                                : new RegExp('^' + key + '(/|$)')
+                };
+                arr.push(item);
+            }
+        }
+        return arr;
+    }
+
+    /**
+     * 根据元素的k或name项进行数组字符数逆序的排序函数
+     *
+     * @inner
+     * @param {Object} a 要比较的对象a
+     * @param {Object} b 要比较的对象b
+     * @return {number} 比较结果
+     */
+    function descSorterByKOrName(a, b) {
+        var aValue = a.k || a.name;
+        var bValue = b.k || b.name;
+
+        if (bValue === '*') {
+            return -1;
+        }
+
+        if (aValue === '*') {
+            return 1;
+        }
+
+        return bValue.length - aValue.length;
+    }
+
+    /**
+     * 对配置信息的索引进行检索
+     *
+     * @inner
+     * @param {string} value 要检索的值
+     * @param {Array} index 索引对象
+     * @param {Function} hitBehavior 索引命中的行为函数
+     */
+    function indexRetrieve(value, index, hitBehavior) {
+        each(index, function (item) {
+            if (item.reg.test(value)) {
+                hitBehavior(item.v, item.k, item);
+                return false;
+            }
+        });
+    }
+
+    /**
+     * 循环遍历数组集合
+     *
+     * @inner
+     * @param {Array} source 数组源
+     * @param {function(Array,Number):boolean} iterator 遍历函数
+     */
+    function each(source, iterator) {
+        if (source instanceof Array) {
+            for (var i = 0, len = source.length; i < len; i++) {
+                if (iterator(source[i], i) === false) {
+                    break;
+                }
+            }
+        }
     }
 
     require = createRequire('');
 
     /**
-     * 配置require
+     * 配置require 支持多处配置 二级mix
      *
      * @param {Object} conf 配置对象
      */
@@ -267,9 +313,19 @@ var require;
             for (var key in config) {
                 if (config.hasOwnProperty(key)) {
                     var newValue = conf[key];
-                    // 除了map 和config外都是基本类型, 而map 和config在默认的时候无值
+                    var oldValue = config[key];
                     if (!newValue) {
                         continue;
+                    }
+                    if (oldValue instanceof Array) {
+                        oldValue.push.apply(oldValue, newValue);
+                    }
+                    else if (typeof oldValue === 'object') {
+                        for (var k in newValue) {
+                            if (newValue.hasOwnProperty(k)) {
+                                oldValue[k] = newValue[k];
+                            }
+                        }
                     }
                     else {
                         config[key] = newValue;
@@ -300,17 +356,19 @@ var require;
      * @return {*} 模块接口
      */
     function getModExports(id, baseId) {
-        // 加载plugin插件
-        if (id.indexOf('!') > 0) {
-            return loadResource(id, baseId);
+
+        var mod = mods[id];
+
+        if (!mod) {
+            // 加载plugin插件
+            if (id.indexOf('!') > 0) {
+                return loadResource(id, baseId);
+            }
+
+            throw new Error('[MODULE_MISS]: ' + id + ' is not exist ');
         }
 
         // 正常插件
-        var mod = mods[id];
-        if (!mod) {
-            throw new Error('No ' + id);
-        }
-
         if (!mod.defined) {
             var factory = mod.factory;
             var factoryReturn;
@@ -318,14 +376,20 @@ var require;
                 factoryReturn = mod.factory;
             }
             else {
+                var initDeps = mod.deps.slice(0);
+                if (initDeps.length > factory.length) {
+                    initDeps.length = factory.length;
+                }
                 factoryReturn = factory.apply(
                     this,
-                    getModsExports(mod.deps, factory, id)
+                    getModsExports(initDeps, id)
                 );
             }
+
             if (typeof factoryReturn !== 'undefined') {
                 mod.exports = factoryReturn;
             }
+
             mod.defined = 1;
         }
 
@@ -336,16 +400,15 @@ var require;
      * 执行模块factory函数，进行模块初始化
      *
      * @param {Array} ids 依赖模块组标识
-     * @param {*} factory 模块定义函数或模块对象
      * @param {string} baseId 当前所在环境id
      *
      * @return {*} 模块接口
      */
-    function getModsExports(ids, factory, baseId) {
+    function getModsExports(ids, baseId) {
         var es = [];
         var mod = mods[baseId];
         // invoke deps which need
-        for (var i = 0, l = Math.min(ids.length, factory.length); i < l; i++) {
+        for (var i = 0, l = ids.length; i < l; i++) {
             var id = normalize(ids[i], baseId);
             var arg;
             switch (id) {

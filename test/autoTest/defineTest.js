@@ -9,7 +9,7 @@
     };
 });
 
-define('defineTest/mod2', {
+define('defineTest/mod2', [], {
     name: 'mod2'
 });
 

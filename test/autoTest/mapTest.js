@@ -17,12 +17,20 @@ define('mapTest/mod2', ['require'], function (require) {
     return {
         name: 'mod2',
         getTeName: function () {
-            return require('te').name; // 等价于 require('mapstar');
+            return require('te').name; // 等价于 require('moremap');
         }
     };
 });
 
 define('mapTest/mod3', ['require'], function (require) {
+    return {
+        name: 'mod3',
+        getTeName: function () {
+            return require('te').name; // 等价于 require('map');
+        }
+    };
+});
+define('mapTest/mod3/a', ['require'], function (require) {
     return {
         name: 'mod3',
         getTeName: function () {
@@ -43,17 +51,25 @@ define('mapTest/mapstar', [], function () {
     };
 });
 
+define('mapTest/moremap', [], function () {
+    return {
+        name: 'moremap'
+    };
+});
+
 function mapTest(li) {
     require(
         [
             'mapTest/mod1',
             'mapTest/mod2',
-            'mapTest/mod3'
+            'mapTest/mod3',
+            'mapTest/mod3/a'
         ],
-        function (m1, m2, m3) {
+        function (m1, m2, m3, m4) {
             if (m1.getTeName() === 'mapstar'
-                && m2.getTeName() === 'mapstar'
-                && m3.getTeName() === 'map') {
+                && m2.getTeName() === 'moremap'
+                && m3.getTeName() === 'map'
+                && m4.getTeName() === 'map') {
                     li.className = 'pass';
             }
             else {
