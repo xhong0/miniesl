@@ -79,6 +79,7 @@ var require;
     /**
      * id normalize化
      *
+     * @inner
      * @param {string} id 需要normalize的模块标识
      * @param {string} baseId 当前环境的模块标识
      * @return {string} normalize结果
@@ -198,7 +199,7 @@ var require;
     function mappingModuleId(moduleId, baseId) {
         // 将config.map中的key 按照长度排序 生成元素为对象的数组
         var mapIdIndex = objToKvregArr(config.map).sort(descSorterByKOrName);
-        // 将config.map中每一项的value 成按长度 生产各项元素为对象的数据 
+        // 将config.map中每一项的value 成按长度 生产各项元素为对象的数据
         each(mapIdIndex, function (item) {
                 item.v = objToKvregArr(item.v).sort(descSorterByKOrName);
             }
@@ -219,6 +220,23 @@ var require;
         );
 
         return moduleId;
+    }
+
+    /**
+     * 对配置信息的索引进行检索
+     *
+     * @inner
+     * @param {string} value 要检索的值
+     * @param {Array} index 索引对象
+     * @param {Function} hitBehavior 索引命中的行为函数
+     */
+    function indexRetrieve(value, index, hitBehavior) {
+        each(index, function (item) {
+            if (item.reg.test(value)) {
+                hitBehavior(item.v, item.k, item);
+                return false;
+            }
+        });
     }
 
     /**
@@ -269,23 +287,6 @@ var require;
     }
 
     /**
-     * 对配置信息的索引进行检索
-     *
-     * @inner
-     * @param {string} value 要检索的值
-     * @param {Array} index 索引对象
-     * @param {Function} hitBehavior 索引命中的行为函数
-     */
-    function indexRetrieve(value, index, hitBehavior) {
-        each(index, function (item) {
-            if (item.reg.test(value)) {
-                hitBehavior(item.v, item.k, item);
-                return false;
-            }
-        });
-    }
-
-    /**
      * 循环遍历数组集合
      *
      * @inner
@@ -300,6 +301,20 @@ var require;
                 }
             }
         }
+    }
+
+    /**
+     * 模块配置获取函数
+     *
+     * @inner
+     * @return {Object} 模块配置对象
+     */
+    function moduleConfigGetter() {
+        var conf = config.config[this.id];
+        if (conf && typeof conf === 'object') {
+            return conf;
+        }
+        return {};
     }
 
     require = createRequire('');
@@ -337,21 +352,9 @@ var require;
     };
 
     /**
-     * 模块配置获取函数
-     *
-     * @return {Object} 模块配置对象
-     */
-    function moduleConfigGetter() {
-        var conf = config.config[this.id];
-        if (conf && typeof conf === 'object') {
-            return conf;
-        }
-        return {};
-    }
-
-    /**
      * 执行模块factory函数，进行模块初始化
      *
+     * @inner
      * @param {string} id 模块id
      * @param {string} baseId 当前环境的id
      * @return {*} 模块接口
@@ -400,6 +403,7 @@ var require;
     /**
      * 执行模块factory函数，进行模块初始化
      *
+     * @inner
      * @param {Array} ids 依赖模块组标识
      * @param {string} baseId 当前所在环境id
      *
