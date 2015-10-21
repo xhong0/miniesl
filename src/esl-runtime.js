@@ -445,17 +445,17 @@ var require;
      * @return {*} 模块接口
      */
     function loadResource(pluginAndResource, baseId) {
+        if (mods[pluginAndResource]) {
+            return mods.exports;
+        }
         // 加载插件资源
         var idInfo = parseId(pluginAndResource);
-        var resourceId = idInfo.res;
-        var resource = {};
-        if (resourceId) {
-            resource.id = pluginAndResource;
-            var plugin = require(idInfo.mod);
-            load(plugin);
-            return resource.exports || true;
-        }
-
+        var resource = {
+            id: pluginAndResource
+        };
+        mods[pluginAndResource] = resource;
+        load(require(idInfo.mod));
+        return resource.exports;
         /**
          * 加载插件资源
          *

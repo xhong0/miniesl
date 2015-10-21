@@ -52,7 +52,7 @@ function pluginTest(li) {
     require(
         [
             'pluginTest/plugin!a/b/c/final',
-            'pluginTest/css!../a.css'
+            'pluginTest/css!a.css'
         ],
         function (p1, p2) {
             if (p1.getName() === 'final'
